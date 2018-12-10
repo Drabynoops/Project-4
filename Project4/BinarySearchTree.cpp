@@ -62,6 +62,27 @@ Node* BinarySearchTree::GetRoot()
 	return _root;
 }
 
+/* Return the depth of the node provided
+*
+*  Input: nodeToFindDepthOf
+*
+*  Output: int - depth of nodeToFindDepthOf
+*
+*/
+int BinarySearchTree::GetNodeDepth(Node* nodeToFindDepthOf)
+{
+	// Root has a depth of 0
+	// All other nodes have a depth 1 greater than their parent
+	if (nodeToFindDepthOf->IsRoot())
+	{
+		return 0;
+	}
+	else
+	{
+		return GetNodeDepth(nodeToFindDepthOf->GetParent()) + 1;
+	}
+}
+
 /* Return whether or not the binary tree is empty
 *
 * Input: None
@@ -94,7 +115,7 @@ Node* BinarySearchTree::Search(int keyToSearch, Node* nodeToSearchAt)
 	// children that are smaller go to the left
 	else if (keyToSearch < nodeToSearchAt->GetKey())
 	{
-		return Search(keyToSearch, nodeToSearchAt->GetLeft());
+		return Search(keyToSearch, nodeToSearchAt->GetLeftChild());
 	}
 	// key matches and node was found
 	else if (keyToSearch == nodeToSearchAt->GetKey())
@@ -105,7 +126,7 @@ Node* BinarySearchTree::Search(int keyToSearch, Node* nodeToSearchAt)
 	// children that are larger go to the right
 	else
 	{
-		return Search(keyToSearch, nodeToSearchAt->GetRight());
+		return Search(keyToSearch, nodeToSearchAt->GetRightChild());
 	}
 }
 
@@ -135,7 +156,7 @@ Node* BinarySearchTree::Insert(int keyToInsert, std::string valueToInsert, Node*
 		//if such node already exists in the tree
 		if (newNode->IsInternal()) 
 		{
-			return Insert(keyToInsert, valueToInsert, newNode->GetLeft());
+			return Insert(keyToInsert, valueToInsert, newNode->GetLeftChild());
 		}
 		//insert the new node at an external node on the tree
 		this->InsertAtExternal(newNode, keyToInsert, valueToInsert);
@@ -166,7 +187,10 @@ void BinarySearchTree::Rebalance(Node* newlyInsertedNode)
 		if (!this->IsBalanced(nodeToCheck)) 
 		{
 			Node* grandchildOfUnbalanced = TallGrandchild(nodeToCheck);
-			this->Restructure(grandchildOfUnbalanced);
+			if (grandchildOfUnbalanced != nullptr)
+			{
+				this->Restructure(grandchildOfUnbalanced);
+			}	
 		}
 	}
 }
@@ -184,6 +208,104 @@ Node* BinarySearchTree::BalancedInsert(int keyToInsert, std::string valueToInser
 	Node* insertedNode = Insert(keyToInsert, valueToInsert, this->GetRoot());
 	Rebalance(insertedNode);
 	return insertedNode;
+}
+
+/* Delete a non-external node
+*
+* Input: nodeToDelete - point to node to be deleted
+*
+* Output: Node* - sibling of the deleted node
+*
+*/
+Node* BinarySearchTree::Delete(Node* nodeToDelete)
+{
+	if (nodeToDelete->IsExternal() || nodeToDelete->IsRoot())
+	{
+		std::cout << "Can not before delete. The node is either external or root." << std::endl;
+		return nullptr;
+	}
+	else
+	{
+		Node* parent = nodeToDelete->GetParent();
+		Node* sibling = (nodeToDelete == parent->GetLeftChild() ? parent->GetRightChild() : parent->GetLeftChild());
+
+		if (parent->IsRoot())
+		{
+			SetRoot(sibling);
+			sibling->SetParent(nullptr);
+		}
+		else
+		{
+			Node* grandParent = parent->GetParent();
+			if (parent == grandParent->GetLeftChild())
+			{
+				grandParent->SetLeftChild(sibling);
+			}
+			else
+			{
+				grandParent->SetRightChild(sibling);
+			}
+		}
+		delete nodeToDelete;
+		delete parent;
+		this->_size--;
+		return sibling;
+	}
+}
+
+/* Delete, but ReBalance is called after
+*
+*  Input: nodeToDelete - node to be removed from the tree
+*
+*  Output: Node* - sibling of the node that was deleted
+*
+*/
+Node* BinarySearchTree::BalancedDelete(Node* nodeToDelete)
+{
+	Node* siblingOfDeleted = Delete(nodeToDelete);
+	if (siblingOfDeleted != nullptr)
+	{
+		Rebalance(siblingOfDeleted);
+	}
+	return siblingOfDeleted;
+}
+
+/* Print out a graphical representation of the tree using InOrder traversal
+*
+* Input: none
+*
+* Output: none
+*
+*/
+void BinarySearchTree::PrintTree()
+{
+	// Create vector large enough for drawing the tree
+	int col = this->GetSize();
+	int row = GetNodeHeight(this->GetRoot()) + 1;
+
+	std::cout << "Height of Root: " << GetNodeHeight(this->GetRoot()) << std::endl;
+	std::vector<std::vector<std::string>> grid(row, std::vector<std::string>(col, "NULL"));
+
+	// In order traversal of the tree and assign coordinates
+	int counter = 0;
+	AssignCoordinates(this->GetRoot(), grid, counter);
+
+	for (int o = 0; o < row; o++)
+	{
+		for (int i = 0; i < col; i++)
+		{
+			if (grid[o][i] == "NULL")
+			{
+				std::cout << " ";
+			}
+			else
+			{
+				std::cout << grid[o][i];
+			}
+		}
+		std::cout << std::endl;
+	}
+	
 }
 
 Node* _root;
@@ -208,8 +330,8 @@ void BinarySearchTree::InsertAtExternal(Node* externalNode, int keyToInsert, std
 		//create children of v, so it becomes internal node
 		Node* left = new Node;
 		Node* right = new Node;
-		externalNode->SetLeft(left);
-		externalNode->SetRight(right);
+		externalNode->SetLeftChild(left);
+		externalNode->SetRightChild(right);
 		left->SetParent(externalNode);
 		right->SetParent(externalNode);
 	}
@@ -228,40 +350,30 @@ void BinarySearchTree::InsertAtExternal(Node* externalNode, int keyToInsert, std
 * Output: int - height of the specificed node
 *
 */
-int BinarySearchTree::Height(Node* nodeToReturnHeight)
+int BinarySearchTree::GetNodeHeight(Node* nodeToReturnHeight)
 {	
-	// Make sure pointer isn't to a null memory space
-	if (nodeToReturnHeight != nullptr) 
+	// Height of an external node is always 0
+	if (nodeToReturnHeight->IsExternal()) 
 	{
-		// Height of an external node is always 0
-		if (nodeToReturnHeight->IsExternal()) 
-		{
-
-			return 0;
-		}
-		// Return the hightest height of children of node
-		else 
-		{
-			int leftHeight = Height(nodeToReturnHeight->GetLeft());
-			int rightHeight = Height(nodeToReturnHeight->GetRight());
-			if (leftHeight >= rightHeight) 
-			{
-				return leftHeight + 1;
-			}
-			else 
-			{
-				return rightHeight + 1;
-			}
-		}
+		return 0;
 	}
-	// Display error message if the pointer is to nullptr
+	// Return the hightest height of children of node
 	else 
 	{
-		std::cout << "node this null" << std::endl;
+		int leftHeight = GetNodeHeight(nodeToReturnHeight->GetLeftChild());
+		int rightHeight = GetNodeHeight(nodeToReturnHeight->GetRightChild());
+		if (leftHeight > rightHeight) 
+		{
+			return leftHeight + 1;
+		}
+		else 
+		{
+			return rightHeight + 1;
+		}
 	}
 }
 
-/* Return is difference between height of children is greate than 1
+/* Returns difference between height of children is greate than 1
 *
 *  Input: nodeToCheck - pointer to node to see if balanced
 *
@@ -273,9 +385,10 @@ bool BinarySearchTree::IsBalanced(Node* nodeToCheck)
 	if (nodeToCheck->IsExternal()) {
 		return true;
 	}
-	else {
-		int diffInHeight = Height(nodeToCheck->GetLeft()) - Height(nodeToCheck->GetRight());
-		return (std::abs(diffInHeight) > 1);
+	else 
+	{
+		int diffInHeight = GetNodeHeight(nodeToCheck->GetLeftChild()) - GetNodeHeight(nodeToCheck->GetRightChild());
+		return ((-1 <= diffInHeight) && (diffInHeight <= 1));
 	}
 }
 
@@ -288,37 +401,44 @@ bool BinarySearchTree::IsBalanced(Node* nodeToCheck)
 */
 Node* BinarySearchTree::TallGrandchild(Node* unbalancedNode)
 {
-	Node* left = unbalancedNode->GetLeft();
-	Node* right = unbalancedNode->GetRight();
-	// Left child is the tallest child
-	if (Height(left) >= Height(right)) 
+	if (!unbalancedNode->IsExternal())
 	{
-		Node* tallestChild = left;
-		// Left grandchild is the tallest grandchild
-		if (Height(tallestChild->GetLeft()) >= Height(tallestChild->GetRight())) 
+		Node* left = unbalancedNode->GetLeftChild();
+		Node* right = unbalancedNode->GetRightChild();
+		// Left child is the tallest child
+		if (GetNodeHeight(left) >= GetNodeHeight(right))
 		{
-			return tallestChild->GetLeft();
+			Node* tallestChild = left;
+			// Left grandchild is the tallest grandchild
+			if (GetNodeHeight(tallestChild->GetLeftChild()) >= GetNodeHeight(tallestChild->GetRightChild()))
+			{
+				return tallestChild->GetLeftChild();
+			}
+			// Right grandchild is the tallest grandchild
+			else
+			{
+				return tallestChild->GetRightChild();
+			}
 		}
-		// Right grandchild is the tallest grandchild
-		else 
+		// Right child is the tallest child
+		else
 		{
-			return tallestChild->GetRight();
+			Node* tallestChild = right;
+			// Left grandchild is the tallest grandchild
+			if (GetNodeHeight(tallestChild->GetLeftChild()) >= GetNodeHeight(tallestChild->GetRightChild()))
+			{
+				return tallestChild->GetLeftChild();
+			}
+			// Right grandchild is the tallest grandchild
+			else
+			{
+				return tallestChild->GetRightChild();
+			}
 		}
 	}
-	// Right child is the tallest child
-	else 
+	else
 	{
-		Node* tallestChild = right;
-		// Left grandchild is the tallest grandchild
-		if (Height(tallestChild->GetLeft()) >= Height(tallestChild->GetRight())) 
-		{
-			return tallestChild->GetLeft();
-		}
-		// Right grandchild is the tallest grandchild
-		else 
-		{
-			return tallestChild->GetRight();
-		}
+		return unbalancedNode;
 	}
 }
 
@@ -335,122 +455,150 @@ void BinarySearchTree::Restructure(Node* grandchild)
 	Node* parent = child->GetParent();
 
 	// 2. Get the inorder progression of parent, child, and grandchild
-	Node* a = nullptr; 
-	Node* b = nullptr; 
+	Node* a = nullptr;
+	Node* b = nullptr;
 	Node* c = nullptr;
-	if (parent->GetRight() == child && child->GetRight() == grandchild) 
+	if (parent->GetRightChild() == child && child->GetRightChild() == grandchild)
 	{
 		a = parent;
-		b = child; 
+		b = child;
 		c = grandchild;
 	}
-	else if (parent->GetLeft() == child && child->GetLeft() == grandchild)
+	else if (parent->GetLeftChild() == child && child->GetLeftChild() == grandchild)
 	{
 		a = grandchild;
 		b = child;
 		c = parent;
 	}
-	else if (parent->GetRight() == child && child->GetLeft() == grandchild) 
+	else if (parent->GetRightChild() == child && child->GetLeftChild() == grandchild)
 	{
-		a = parent; 
+		a = parent;
 		b = grandchild;
 		c = child;
 	}
-	else if (parent->GetLeft() == child && child->GetRight() == grandchild) 
+	else if (parent->GetLeftChild() == child && child->GetRightChild() == grandchild)
 	{
-		a = child; 
+		a = child;
 		b = grandchild;
 		c = parent;
 	}
 
 	//3. Find the subtrees that aren't from the parent, child, and grandchild 
-	Node* T0 = nullptr; 
+	Node* T0 = nullptr;
 	Node* T1 = nullptr;
-	Node* T2 = nullptr; 
+	Node* T2 = nullptr;
 	Node* T3 = nullptr;
-	if (a == parent && b == child && c == grandchild) 
+	if (a == parent && b == child && c == grandchild)
 	{
-		T0 = a->GetLeft(); 
-		T1 = b->GetLeft(); 
-		T2 = c->GetLeft(); 
-		T3 = c->GetRight();
+		T0 = a->GetLeftChild();
+		T1 = b->GetLeftChild();
+		T2 = c->GetLeftChild();
+		T3 = c->GetRightChild();
 	}
-	else if (a == grandchild && b == child && c == parent) 
+	else if (a == grandchild && b == child && c == parent)
 	{
-		T0 = a->GetLeft(); 
-		T1 = a->GetRight(); 
-		T2 = b->GetRight(); 
-		T3 = c->GetRight();
+		T0 = a->GetLeftChild();
+		T1 = a->GetRightChild();
+		T2 = b->GetRightChild();
+		T3 = c->GetRightChild();
 	}
-	else if (a == parent && b == grandchild && c == child) 
+	else if (a == parent && b == grandchild && c == child)
 	{
-		T0 = a->GetLeft(); 
-		T1 = b->GetLeft(); 
-		T2 = b->GetRight(); 
-		T3 = c->GetRight();
+		T0 = a->GetLeftChild();
+		T1 = b->GetLeftChild();
+		T2 = b->GetRightChild();
+		T3 = c->GetRightChild();
 	}
-	else if (a == child && b == grandchild && c == parent) 
+	else if (a == child && b == grandchild && c == parent)
 	{
-		T0 = a->GetLeft(); 
-		T1 = b->GetLeft(); 
-		T2 = b->GetRight(); 
-		T3 = c->GetRight();
+		T0 = a->GetLeftChild();
+		T1 = b->GetLeftChild();
+		T2 = b->GetRightChild();
+		T3 = c->GetRightChild();
 	}
 
 	// Replace the subtree rooted at the parent with a new subtree rooted at b
 	// If parent is not root
-	if (!parent->IsRoot()) 
+	if (!parent->IsRoot())
 	{
-		if (parent->GetParent()->GetLeft() == parent) 
+		if (parent->GetParent()->GetLeftChild() == parent)
 		{
-			parent->GetParent()->SetLeft(b);
+			parent->GetParent()->SetLeftChild(b);
 		}
-		else 
+		else
 		{
-			parent->GetParent()->SetRight(b);
+			parent->GetParent()->SetRightChild(b);
 		}
 		b->SetParent(parent->GetParent());
 	}
 	// If parent is root
-	else 
+	else
 	{
 		b->SetParent(nullptr);
-		this->_root = b;
+		this->SetRoot(b);
 	}
 
 	// Set a be left child of b
-	b->SetLeft(a);
+	b->SetLeftChild(a);
 	a->SetParent(b);
-	a->SetLeft(nullptr);
-	a->SetRight(nullptr);
+	a->SetLeftChild(nullptr);
+	a->SetRightChild(nullptr);
 
 	// Set c be right child of b
-	b->SetRight(c);
+	b->SetRightChild(c);
 	c->SetParent(b);
-	c->SetLeft(nullptr);
-	c->SetRight(nullptr);
+	c->SetLeftChild(nullptr);
+	c->SetRightChild(nullptr);
 
 	// Let T0, T1 be left and right subtrees of a, respectively
-	a->SetLeft(T0);
-	if (T0 != nullptr) 
+	a->SetLeftChild(T0);
+	if (T0 != nullptr)
 	{
 		T0->SetParent(a);
 	}
-	a->SetRight(T1);
-	if (T1 != nullptr) 
+	a->SetRightChild(T1);
+	if (T1 != nullptr)
 	{
 		T1->SetParent(a);
 	}
 
 	// Let T2, T3 be left and right subtrees of c, respectively
-	c->SetLeft(T2);
-	if (T2 != nullptr) 
+	c->SetLeftChild(T2);
+	if (T2 != nullptr)
 	{
 		T2->SetParent(c);
 	}
-	c->SetRight(T3);
-	if (T3 != nullptr) 
+	c->SetRightChild(T3);
+	if (T3 != nullptr)
 	{
 		T3->SetParent(c);
+	}
+}
+
+/* Puts a node into a grid based on it's depth and order it came in traversal
+*
+*  Input: nodeToStartAt - the node that will be recursed through
+*		  grid - A two-dimensional vector containing the information for the graph
+*		  counter - the order in which the nodes have been visited
+*
+*  Output: None
+*
+*/
+void BinarySearchTree::AssignCoordinates(Node* nodeToStartAt, std::vector<std::vector<std::string>>& grid, int& counter)
+{
+	// Follows in order algorithm
+	if (nodeToStartAt != nullptr )
+	{
+		/*This is a fix for a bug*/
+		if (nodeToStartAt->GetKey() != 0 && nodeToStartAt->GetLeftChild() != nullptr && nodeToStartAt->GetRightChild() != nullptr)
+		{
+			AssignCoordinates(nodeToStartAt->GetLeftChild(), grid, counter);
+			int col = counter;
+			int row = this->GetNodeDepth(nodeToStartAt);
+			std::cout << "Node with key " << nodeToStartAt->GetKey() << " has depth of " << row << " and a column value of " << col << std::endl;
+			grid[row][col] = std::to_string(nodeToStartAt->GetKey());  // We are showing that the keys are ordered correctly
+			counter++;
+			AssignCoordinates(nodeToStartAt->GetRightChild(), grid, counter);
+		}
 	}
 }

@@ -25,12 +25,12 @@ void Node::SetParent(Node* parent)
 	_parent = parent;
 }
 
-void Node::SetLeft(Node* left)
+void Node::SetLeftChild(Node* left)
 {
 	_left = left;
 }
 
-void Node::SetRight(Node* right)
+void Node::SetRightChild(Node* right)
 {
 	_right = right;
 }
@@ -50,12 +50,12 @@ Node* Node::GetParent()
 	return _parent;
 }
 
-Node* Node::GetLeft()
+Node* Node::GetLeftChild()
 {
 	return _left;
 }
 
-Node* Node::GetRight()
+Node* Node::GetRightChild()
 {
 	return _right;
 }

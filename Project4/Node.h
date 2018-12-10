@@ -8,13 +8,13 @@ public:
 	void SetKey(int key);
 	void SetValue(std::string value);
 	void SetParent(Node* parent);
-	void SetLeft(Node* left);
-	void SetRight(Node* right);
+	void SetLeftChild(Node* left);
+	void SetRightChild(Node* right);
 	int GetKey();
 	std::string GetValue();
 	Node* GetParent();
-	Node* GetLeft();
-	Node* GetRight();
+	Node* GetLeftChild();
+	Node* GetRightChild();
 	bool IsExternal();
 	bool IsInternal();
 	bool IsRoot();
@@ -29,5 +29,5 @@ private:
 	Node* _left;
 	Node* _right;
 	int _key;
-	std::string _value
+	std::string _value;
 };
