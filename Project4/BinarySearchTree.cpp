@@ -175,22 +175,25 @@ Node* BinarySearchTree::Insert(int keyToInsert, std::string valueToInsert, Node*
 */
 void BinarySearchTree::Rebalance(Node* newlyInsertedNode)
 {
-	Node* nodeToCheck = newlyInsertedNode;
-	// Make sure that nodeToBalance isn't root
-	// Root's parent is nullptr, this is bad
-	while (!nodeToCheck->IsRoot()) 
+	if (_size != 0)
 	{
-		// Current node is assumed balanced as it starts with
-		// a newly inserted node. So grab the parent instead.
-		nodeToCheck= nodeToCheck->GetParent();
-		// If node is not balanced, grabs the "tallest" grandchild
-		if (!this->IsBalanced(nodeToCheck)) 
+		Node* nodeToCheck = newlyInsertedNode;
+		// Make sure that nodeToBalance isn't root
+		// Root's parent is nullptr, this is bad
+		while (!nodeToCheck->IsRoot())
 		{
-			Node* grandchildOfUnbalanced = TallGrandchild(nodeToCheck);
-			if (grandchildOfUnbalanced != nullptr)
+			// Current node is assumed balanced as it starts with
+			// a newly inserted node. So grab the parent instead.
+			nodeToCheck = nodeToCheck->GetParent();
+			// If node is not balanced, grabs the "tallest" grandchild
+			if (!this->IsBalanced(nodeToCheck))
 			{
-				this->Restructure(grandchildOfUnbalanced);
-			}	
+				Node* grandchildOfUnbalanced = TallGrandchild(nodeToCheck);
+				if (grandchildOfUnbalanced != nullptr)
+				{
+					this->Restructure(grandchildOfUnbalanced);
+				}
+			}
 		}
 	}
 }
@@ -207,7 +210,7 @@ Node* BinarySearchTree::BalancedInsert(int keyToInsert, std::string valueToInser
 {
 	Node* insertedNode = Insert(keyToInsert, valueToInsert, this->GetRoot());
 	Rebalance(insertedNode);
-	return insertedNode;
+return insertedNode;
 }
 
 /* Delete a non-external node
@@ -219,37 +222,77 @@ Node* BinarySearchTree::BalancedInsert(int keyToInsert, std::string valueToInser
 */
 Node* BinarySearchTree::Delete(Node* nodeToDelete)
 {
-	if (nodeToDelete->IsExternal() || nodeToDelete->IsRoot())
+	if (nodeToDelete->IsExternal())
 	{
-		std::cout << "Can not before delete. The node is either external or root." << std::endl;
+		delete nodeToDelete;
+		_size--;
 		return nullptr;
+	}
+	else if (nodeToDelete->IsRoot())
+	{
+		Node* leftChild = nodeToDelete->GetLeftChild();
+		Node* rightChild = nodeToDelete->GetRightChild();
+
+		if (leftChild == nullptr)
+		{
+			rightChild->SetParent(nullptr);
+			_root = rightChild;
+		}
+		else if (rightChild == nullptr)
+		{
+			leftChild->SetParent(nullptr);
+			_root - leftChild;
+		}
+		else
+		{
+			leftChild->SetParent(nullptr);
+			_root = leftChild;
+			Node* newParent = leftChild;
+			while (newParent->GetRightChild() != nullptr && newParent->GetRightChild()->GetKey() != 0)
+			{
+				newParent = newParent->GetRightChild();
+				std::cout << "new parent is " << newParent->GetKey() << std::endl;
+			}
+			newParent->SetRightChild(rightChild);
+			rightChild->SetParent(newParent);
+		}
+		delete nodeToDelete;
+		_size--;
 	}
 	else
 	{
 		Node* parent = nodeToDelete->GetParent();
-		Node* sibling = (nodeToDelete == parent->GetLeftChild() ? parent->GetRightChild() : parent->GetLeftChild());
-
-		if (parent->IsRoot())
+		Node* leftChild = nodeToDelete->GetLeftChild();
+		Node* rightChild = nodeToDelete->GetRightChild();
+		
+		if (leftChild == nullptr || leftChild->GetKey() == 0)
 		{
-			SetRoot(sibling);
-			sibling->SetParent(nullptr);
-		}
-		else
-		{
-			Node* grandParent = parent->GetParent();
-			if (parent == grandParent->GetLeftChild())
+			if (parent->GetLeftChild() == nodeToDelete)
 			{
-				grandParent->SetLeftChild(sibling);
+				parent->SetLeftChild(rightChild);
 			}
 			else
 			{
-				grandParent->SetRightChild(sibling);
+				parent->SetRightChild(rightChild);
 			}
+			rightChild->SetParent(parent);
 		}
+		else
+		{
+			if (parent->GetLeftChild() == nodeToDelete)
+			{
+				parent->SetLeftChild(leftChild);
+			}
+			else
+			{
+				parent->SetRightChild(leftChild);
+			}
+			leftChild->SetParent(nodeToDelete);
+		}
+
 		delete nodeToDelete;
-		delete parent;
 		this->_size--;
-		return sibling;
+		return parent;
 	}
 }
 
@@ -279,33 +322,34 @@ Node* BinarySearchTree::BalancedDelete(Node* nodeToDelete)
 */
 void BinarySearchTree::PrintTree()
 {
-	// Create vector large enough for drawing the tree
-	int col = this->GetSize();
-	int row = GetNodeHeight(this->GetRoot()) + 1;
-
-	std::cout << "Height of Root: " << GetNodeHeight(this->GetRoot()) << std::endl;
-	std::vector<std::vector<std::string>> grid(row, std::vector<std::string>(col, "NULL"));
-
-	// In order traversal of the tree and assign coordinates
-	int counter = 0;
-	AssignCoordinates(this->GetRoot(), grid, counter);
-
-	for (int o = 0; o < row; o++)
+	if (_size != 0)
 	{
-		for (int i = 0; i < col; i++)
+		// Create vector large enough for drawing the tree
+		int col = this->GetSize();
+		int row = GetNodeHeight(this->GetRoot()) + 1;
+
+		std::vector<std::vector<std::string>> grid(row, std::vector<std::string>(col, "NULL"));
+
+		// In order traversal of the tree and assign coordinates
+		int counter = 0;
+		AssignCoordinates(this->GetRoot(), grid, counter);
+
+		for (int o = 0; o < row; o++)
 		{
-			if (grid[o][i] == "NULL")
+			for (int i = 0; i < col; i++)
 			{
-				std::cout << " ";
+				if (grid[o][i] == "NULL")
+				{
+					std::cout << " ";
+				}
+				else
+				{
+					std::cout << grid[o][i];
+				}
 			}
-			else
-			{
-				std::cout << grid[o][i];
-			}
+			std::cout << std::endl;
 		}
-		std::cout << std::endl;
 	}
-	
 }
 
 Node* _root;
@@ -595,7 +639,6 @@ void BinarySearchTree::AssignCoordinates(Node* nodeToStartAt, std::vector<std::v
 			AssignCoordinates(nodeToStartAt->GetLeftChild(), grid, counter);
 			int col = counter;
 			int row = this->GetNodeDepth(nodeToStartAt);
-			std::cout << "Node with key " << nodeToStartAt->GetKey() << " has depth of " << row << " and a column value of " << col << std::endl;
 			grid[row][col] = std::to_string(nodeToStartAt->GetKey());  // We are showing that the keys are ordered correctly
 			counter++;
 			AssignCoordinates(nodeToStartAt->GetRightChild(), grid, counter);

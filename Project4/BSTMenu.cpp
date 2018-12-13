@@ -50,6 +50,7 @@ void BSTMenu::SetBST(BinarySearchTree bst)
 */
 void BSTMenu::PrintMenu()
 {
+	system("CLS");
 	std::cout << std::endl;
 	std::cout << "************************************************" << std::endl;
 	std::cout << "***  1.  Insert node into tree               ***" << std::endl;
@@ -80,14 +81,17 @@ bool BSTMenu::SelectMenuOption()
 	{
 	case 1:
 		Insert();
+		Display();
 		return true;
 		break;
 	case 2:
 		Delete();
+		Display();
 		return true;
 		break;
 	case 3:
 		Search();
+		Display();
 		return true;
 		break;
 	case 4:
@@ -178,4 +182,5 @@ void BSTMenu::Search()
 void BSTMenu::Display()
 {
 	this->_bst.PrintTree();
+	system("PAUSE");
 }
